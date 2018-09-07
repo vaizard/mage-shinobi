@@ -1,0 +1,42 @@
+---
+
+# https://github.com/moeiscool/Shinobi/blob/master/INSTALL/ubuntu-easyinstall.sh
+
+
+- name: Add nodesource apt_keys
+  apt_key:
+    url: "https://deb.nodesource.com/gpgkey/nodesource.gpg.key"
+    state: present
+
+- name: Ensure apt repo is configured
+  apt_repository:
+    repo: "deb https://deb.nodesource.com/node_8.x {{ ansible_distribution_release }} main"
+    state: present
+    
+- name: Ensure packages are installed
+  apt:
+    name: "{{ item }}"
+    state: latest
+    update_cache: true
+  with_items:
+    - ffmpeg
+    - libav-tools
+    - x264
+    - x265
+    - nodejs
+    
+  # this role should depend on mage-mysql to get mysql installed.
+  # this will cover lines 53 - 113 in the installer.
+  # following lines should have the sql copied into jinja arrays
+  # see i.e. https://github.com/vaizard/mage-mailtrain/blob/master/tasks/main.yml#L46 
+  # for a lame way to do this to cover up to line 145
+  
+  - name: Clone shinobi from github
+    git: repo=..put url here.. dest=/opt/shinobi version={{ shinobi_version }} force=yes
+    
+  # i'd use shinobi_version = HEAD or just a nice release, set that in defaults/main.yml
+  
+  - name: Shinobi npm install.
+    shell: npm install pm2 --no-progress
+    args:
+      chdir: /opt/shinobi
