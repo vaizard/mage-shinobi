@@ -1,42 +1,94 @@
 ---
 
-# https://github.com/moeiscool/Shinobi/blob/master/INSTALL/ubuntu-easyinstall.sh
-
-
 - name: Add nodesource apt_keys
+
   apt_key:
     url: "https://deb.nodesource.com/gpgkey/nodesource.gpg.key"
     state: present
 
 - name: Ensure apt repo is configured
+
   apt_repository:
     repo: "deb https://deb.nodesource.com/node_8.x {{ ansible_distribution_release }} main"
     state: present
     
 - name: Ensure packages are installed
+
   apt:
     name: "{{ item }}"
     state: latest
     update_cache: true
   with_items:
     - ffmpeg
-    - libav-tools
     - x264
     - x265
     - nodejs
-    
-  # this role should depend on mage-mysql to get mysql installed.
-  # this will cover lines 53 - 113 in the installer.
-  # following lines should have the sql copied into jinja arrays
-  # see i.e. https://github.com/vaizard/mage-mailtrain/blob/master/tasks/main.yml#L46 
-  # for a lame way to do this to cover up to line 145
+ 
+- name: Clone Shinobi
+  git:
+    repo: https://gitlab.com/Shinobi-Systems/Shinobi.git
+    dest: /opt/shinobi
+    update: no
+
+
+- name: Create required databases
+  shell: "mysql -u {{mysql_user_name}} -p{{mysql_user_password}} < /opt/shinobi/sql/framework.sql"
+  tags: ['db']
+
+
+- name: Create mysql user for shinobi app
+  mysql_user:
+    name: majesticflame
+    priv: 'ccio.*:ALL'
+    state: present
+  tags: ['db']
+
+
+- name: Copy template file for shinobi users
+  template:
+    src: shinobi-users.sql.j2
+    dest: /tmp/shinobi-users.sql
+    mode: "u=rwx"
+    force: true
+  tags: ['db', 'adduser']
+
+- name: Install GHC because Haskell is life
+  apt:
+    name: ghc
+    state: latest
+
+- name: Create users for access to shinobi
+  shell: "mysql -u {{ mysql_user_name }} -p{{ mysql_user_password }} < /tmp/shinobi-users.sql"
+  tags: ['db', 'adduser']
+
+- name: Install NPM libraries
+  shell: npm i npm -g && npm install --unsafe-perm && npm audit fix --unsafe-perm
+  args:
+    chdir: /opt/shinobi 
+  tags: ['npm']
+
+- name: Install PM2
+  shell: npm install pm2 -g
+  args:
+    chdir: /opt/shinobi 
+  tags: ['npm']
   
-  - name: Clone shinobi from github
-    git: repo=..put url here.. dest=/opt/shinobi version={{ shinobi_version }} force=yes
-    
-  # i'd use shinobi_version = HEAD or just a nice release, set that in defaults/main.yml
-  
-  - name: Shinobi npm install.
-    shell: npm install pm2 --no-progress
-    args:
-      chdir: /opt/shinobi
+- name: Copy Shinobi config file
+  template:
+    src: shinobi-conf.json.j2
+    dest: /opt/shinobi/conf.json
+    mode: "u=rwx"
+  tags: ['config']
+
+- name: Copy Shinobi super.json file
+  template:
+    src: shinobi-super.json.j2
+    dest: /opt/shinobi/super.json
+    mode: "u=rwx"
+  tags: ['config']
+
+- name: Start Shinobi
+  shell: pm2 start camera.js && pm2 start cron.js
+  args:
+    chdir: /opt/shinobi 
+  tags: ['pm2', 'service']

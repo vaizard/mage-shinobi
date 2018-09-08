@@ -1,0 +1,8 @@
+USE ccio;
+{% for item in shinobi_users %}
+
+INSERT IGNORE INTO `Users` (`ke`, `uid`, `auth`, `mail`, `pass`, `details`) VALUES ('{{ item.groupKey }}', '{{ item.uid }}', '{{ item.apiKey }}', '{{ item.email }}', '{{ item.password }}', '{{ item.details }}');
+
+INSERT IGNORE INTO `API` (`code`, `ke`, `uid`, `ip`, `details`) VALUES ('{{ item.apiKey }}', '{{ item.groupKey }}', '{{ item.uid }}', '{{ item.apiIP }}', '{{ item.apiDetail }}');
+
+{% endfor %}
