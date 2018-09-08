@@ -19,4 +19,6 @@ shinobi_users:
     apiIP: 192.168.1.1
     apiDetail: '{"auth_socket":"1","get_monitors":"1","control_monitors":"1","get_logs":"1","watch_stream":"1","watch_snapshot":"1","watch_videos":"1","delete_videos":"1"}'
 
-
+shinobi_superuser_mail: super@user.asdf
+shinobi_superuser_password: 5f4dcc3b5aa765d61d8327deb882cf99
+shinobi_cron_key: diushiudfhisf98769820934osdkfjkd
